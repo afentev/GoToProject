@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import telebot
 import sqlite3
 
@@ -32,23 +34,42 @@ def new_task(message):
 @bot.callback_query_handler(func=lambda call: True)
 def response_inline(call):
     if call.message:
+        if call.data == 'create_task':
+            users.append(call.from_user.id)
+            bot.send_message(call.from_user.id,
+                             'Отправьте сообщения следующего формата:\nЗаголовок задания\nКоличество требующихся исполнителей\nДата сдачи')
         for task in tasks:
             if call.data == task[0]:
                 bot.send_message(call.from_user.id, 'Ты взялся за выполнение задания')
 
 
+@bot.message_handler(content_types=['text'])
+def handler(message):
+    print(users)
+    if message.from_user.id in users:
+        print(message.text.count('\n'))
+        if message.text.count('\n') == 2:
+            information = ['{} {}'.format(message.from_user.first_name, message.from_user.last_name)]
+            information.extend(deepcopy(message.text.split('\n')))
+            users.remove(message.from_user.id)
+            chat_notification(information)
+        print(users)
+
+
 @bot.message_handler(commands=['delete'])
-def del_task(message, tasks):
+def del_task(message):
     keyboard = telebot.types.InlineKeyboardMarkup()
     for i in range(len(tasks)):
         keyboard.add(telebot.types.InlineKeyboardMarkup(tasks[i].text))
 
 
 def chat_notification(information):
+    print(information)
     user, text, count, date = information
     string = '{} создал задание "{}" для {} человек! Задание активно до {}'.format(user, text, count, date)
+    print(text, string, sep='\n')
     keyboard = telebot.types.InlineKeyboardMarkup()
-    keyboard.add(telebot.types.InlineKeyboardButton(text='Я берусь', callback_data=text))
+    keyboard.add(telebot.types.InlineKeyboardButton(text='Я берусь', callback_data=text))  # FIXME тут какая-то хрень странная, исправьте
     bot.send_message(chat_id=chat_id, text=string, reply_markup=keyboard)
 
 if __name__ == '__main__':
