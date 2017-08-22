@@ -1,22 +1,25 @@
-from copy import deepcopy
-
+import requests
 import telebot
-import sqlite3
 
 token = '335976113:AAG0Z4lhYsLWRZ7KUsvTKRpP2SacaytTn9M'
 bot = telebot.TeleBot(token)
 chat_id = -216295082  # заменить на id беседы, где бот должен работать
+# chat_id = -1001128907629
 users = []
 tasks = []
 
 
-@bot.message_handler(commands=['start'])
+@bot.message_handler(commands=['start', 'help'])
 def sorry(message):
-    keyboard = telebot.types.InlineKeyboardMarkup()
-    keyboard.add(telebot.types.InlineKeyboardButton('Создать задание', callback_data='create_task'))
-    keyboard.add(telebot.types.InlineKeyboardButton('Список доступных заданий', callback_data='tasks_list'))
-    bot.send_message(message.chat.id,
-                     'Этот бот создан для систематизации жизни лагеря.', reply_markup=keyboard)
+    if message.text == '/start':
+        if message.chat.type != 'group':
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            keyboard.add(telebot.types.InlineKeyboardButton('Создать задание', callback_data='create_task'))
+            keyboard.add(telebot.types.InlineKeyboardButton('Список доступных заданий', callback_data='tasks_list'))
+            bot.send_message(message.chat.id,
+                             'Этот бот создан для систематизации жизни лагеря.', reply_markup=keyboard)
+    elif message.text == '/help':
+        bot.send_message(message.chat.id, '')
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -41,7 +44,7 @@ def response_inline(call):
             elif call.data == task['text'] + 'take':
                 tasks[index]['count'] -= 1
                 tasks[index]['users_accept'].append('{} {}'.format(call.from_user.first_name, call.from_user.last_name))
-                bot.send_message(call.from_user.id, 'Ты взялся за выполнение задания "{}"'.format(task['text']))
+                bot.send_message(call.from_user.id, 'Вы взялись за выполнение задания "{}"'.format(task['text']))
                 if tasks[index]['count'] == 0:
                     bot.send_message(task['chat.id'],
                                      'Задание "{}" закрыто, так как набралось нужное количество участников'.format(task['text']))
@@ -53,7 +56,6 @@ def response_inline(call):
                 else:
                     bot.send_message(call.from_user.id, text='За выполнение этого задания еще никто не взялся')
                 break
-
 
 
 @bot.message_handler(content_types=['text'])
@@ -69,11 +71,9 @@ def handler(message):
             bot.send_message(message.chat.id, 'Выберите задание для удаления', reply_markup=keyboard)
     elif message.from_user.id in users:
         if message.text.count('\n') == 2:
-            information = {'sender_name': '{} {}'.format(message.from_user.first_name, message.from_user.last_name)}
-            information['text'] = message.text.split('\n')[0]
-            information['count'] = message.text.split('\n')[1]
-            information['date'] = message.text.split('\n')[2]
-            information['chat.id'] = message.chat.id
+            information = {'sender_name': '{} {}'.format(message.from_user.first_name, message.from_user.last_name),
+                           'text': message.text.split('\n')[0], 'count': message.text.split('\n')[1],
+                           'date': message.text.split('\n')[2], 'chat.id': message.chat.id}
             users.remove(message.from_user.id)
             chat_notification(information)
 
@@ -84,7 +84,7 @@ def chat_notification(information):
         count = int(count)
         date = str(date)
     except ValueError:
-        bot.send_message(chat_id=chat_id, text='Неверный формат введенных данных')
+        bot.send_message(chat_id=chat_id_, text='Неверный формат введенных данных')
         return
 
     if isinstance(count, int) and isinstance(date, str) and date.count(' ') == 1 and date.split(' ')[0].count('.') == 1\
@@ -101,5 +101,9 @@ def chat_notification(information):
         bot.send_message(chat_id=chat_id_, text='Неверный формат введенных данных')
 
 if __name__ == '__main__':
-    bot.polling(none_stop=True)
-
+    try:
+        bot.polling(none_stop=True)
+    except requests.exceptions:
+        from time import sleep
+        print('Connection lost. Trying to reconnect...')
+        sleep(2)
