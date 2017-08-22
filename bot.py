@@ -56,6 +56,16 @@ def response_inline(call):
                 else:
                     bot.send_message(call.from_user.id, text='За выполнение этого задания еще никто не взялся')
                 break
+            elif call.data == 'tasks_list':
+                if tasks:
+                    for x in tasks:
+                        keyboard = telebot.types.InlineKeyboardMarkup()
+                        button = telebot.types.InlineKeyboardButton('Я берусь', callback_data=x['text'] + 'take')
+                        keyboard.add(button)
+                        bot.send_message(call.from_user.id, x['text'], reply_markup=keyboard)
+                else:
+                    bot.send_message(call.from_user.id, 'На данный момент нет доступных заданий')
+                break
 
 
 @bot.message_handler(content_types=['text'])
