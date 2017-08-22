@@ -47,16 +47,23 @@ def handler(message):
 @bot.message_handler(commands=['delete'])
 def del_task(message):
     keyboard = telebot.types.InlineKeyboardMarkup()
-    for i in range(len(tasks)):
-        keyboard.add(telebot.types.InlineKeyboardMarkup(tasks[i].text))
+    flag = False
+    for element in tasks:
+        if message.from_user.id == element[0]:
+            keyboard.add(telebot.types.InlineKeyboardMarkup(element[1]))
+            flag = True
+    if flag:
+        bot.send_message(message.chat.id, 'Выберите задание для удаления', reply_markup=keyboard)
 
 
 def chat_notification(information):
     user, text, count, date = information
     string = '{} создал задание "{}" для {} человек! Задание активно до {}'.format(user, text, count, date)
     keyboard = telebot.types.InlineKeyboardMarkup()
-    keyboard.add(telebot.types.InlineKeyboardButton(text='Я берусь', callback_data=text))
+    keyboard.add(telebot.types.InlineKeyboardButton(text='Я берусь', callback_data=text + 'take'),
+                 telebot.types.InlineKeyboardButton(text='Список взявшихся', callback_data=text + 'list'))
     bot.send_message(chat_id=chat_id, text=string, reply_markup=keyboard)
+    tasks.append(information)
 
 if __name__ == '__main__':
     bot.polling(none_stop=True)
