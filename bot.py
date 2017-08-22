@@ -19,18 +19,6 @@ def sorry(message):
                      'Этот бот создан для систематизации жизни лагеря.', reply_markup=keyboard)
 
 
-@bot.message_handler(commands=['create_task'])
-def new_task(message):
-    if message.chat.type != 'group':
-        tasks.append([' '.join(message.text.split()[1:-1]), ' '.join(message.text.split()[-1])])
-        keyboard = telebot.types.InlineKeyboardMarkup()
-        button = telebot.types.InlineKeyboardButton(text='Я', callback_data='test')
-        keyboard.add(button)
-        print(message)
-        bot.send_message(message.chat.id, 'Оке', reply_markup=keyboard)
-    print(str(tasks))
-
-
 @bot.callback_query_handler(func=lambda call: True)
 def response_inline(call):
     if call.message:
@@ -64,12 +52,10 @@ def del_task(message):
 
 
 def chat_notification(information):
-    print(information)
     user, text, count, date = information
     string = '{} создал задание "{}" для {} человек! Задание активно до {}'.format(user, text, count, date)
-    print(text, string, sep='\n')
     keyboard = telebot.types.InlineKeyboardMarkup()
-    keyboard.add(telebot.types.InlineKeyboardButton(text='Я берусь', callback_data=text))  # FIXME тут какая-то хрень странная, исправьте
+    keyboard.add(telebot.types.InlineKeyboardButton(text='Я берусь', callback_data=text))
     bot.send_message(chat_id=chat_id, text=string, reply_markup=keyboard)
 
 if __name__ == '__main__':
